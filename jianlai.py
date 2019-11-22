@@ -126,7 +126,7 @@ def new_novel_detail(url, novel_name):
     try:
         with open(novel_name, 'a') as fileobject:
             fileobject.writelines(rst_title + '\n')
-            fileobject.writelines(rst_novel+ '\n')
+            fileobject.writelines(rst_novel + '\n')
     except Exception as ex:
         print('repr(e):\t', repr(ex))
         with open(novel_name, 'a') as fileobject:
