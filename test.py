@@ -1,45 +1,71 @@
-# -*- coding:utf-8 -*-
-import requests
-from bs4 import BeautifulSoup
 import os
+import configparser
 
-# req = requests.get(url='https://www.biqubao.com/book/18370/7759796.html')
-# # print(req.encoding)
-# req.encoding = 'gbk'
-# # print(req.text)
-# # html = 'https://www.biqubao.com/book/17587/9344164.html'
-# soup = BeautifulSoup(req.text, 'html.parser')     # html为您的html内容
-# print(soup.h1.text)
-# contents = soup.find_all('div', id="content")[0].text.replace('    ', '\n')
-# # contents = contents.replace('    ', '\n')
-# # contents_list = contents.split(
-# print(contents)
-# # for dd in soup.find_all('dd'):
-# #     print(" 标题：{}，链接：{}".format(dd.a.string, dd.a.get('href')))
+#
+# def config_init(ini_file):
+#     fn = ini_file
+#     if not os.path.isfile(fn):
+#         fo = open(ini_file, mode='w', encoding='ANSI')
+#         fo.close()
+#
+# def config_has_section():
+# # def config_get():
+# #
+# #
+# #
+# # def config_set():
 
+class MyConfig:
+    _configFile=''
+    def __init__(self, ini_path):
+        self._configFile = ini_path
+        if not os.path.isfile(self._configFile):
+            fo = open(self._configFile, mode='w', encoding='ANSI')
+            fo.close()
 
-def new_novel_detail(url, novel_name):
-    # https://www.biqubao.com/    的具体每一章内容的结构爬出代码
-    # nov_headers = {
-    #     "User-Agent": random.choice(uapools)
-    # }
-    res = requests.get(url)
-    res.encoding = 'gbk'
-    soup = BeautifulSoup(res.text, 'html.parser')
+    def Get_All_Section(self):
+        cf = configparser.ConfigParser()
+        try:
+            cf.read(self._configFile)
+            all_sections = cf.sections()
+            return all_sections
+        except:
+            return ''
 
-    rst_title = soup.h1.text
-    rst_novel = soup.find_all('div', id="content")[0].text.replace('    ', '\n').replace(u'\xa0', u' ')
-    print(rst_title)
-    try:
-        with open(novel_name, 'a') as fileobject:
-            fileobject.writelines(rst_title + '\n')
-            fileobject.writelines(rst_novel+ '\n')
-    except Exception as ex:
-        print('repr(e):\t', repr(ex))
-        with open(novel_name, 'a') as fileobject:
-            fileobject.writelines(rst_title + '\n')
-            fileobject.writelines(repr(ex) + '\n')
+    def Get_option(self, section, option):
+        cf = configparser.ConfigParser()
+        try:
+            cf.read(self._configFile)
+            rep_option = cf.get(section, option)
+            return rep_option
+        except:
+            return '没有找到'
+
+    def Set_option(self, section, option, value):
+        cf = configparser.ConfigParser()
+        try:
+            cf.read(self._configFile)
+            cf.set(section, option, value)
+            cf.write(open(self._configFile, 'w'))
+            return 'ok'
+        except:
+            return 'error'
 
 
 if __name__ == '__main__':
-    new_novel_detail('https://www.biqubao.com/book/18370/7759796.html', '剑来.txt')
+    cfg = MyConfig('novel.ini')
+    print(cfg.Get_All_Section())
+    print(cfg.Get_option('剑来4', 'url'))
+    flag = cfg.Set_option('剑来4', 'url', '1333311')
+    print(flag)
+    print(cfg.Get_option('剑来4', 'url'))
+    # cfg = configparser.ConfigParser()
+    # cfg.read(ini_file)
+    # print('读取sections是 {}'.format(cfg.sections()))
+    # with open(ini_file, 'w') as fd:
+    #     cfg.add_section('剑来4')
+    #     cfg.set('剑来4', 'url', 'https://www.biqubao.com/book/18370/')
+    #     cfg.write(fd)
+    # print('sections是 {}'.format(cfg.defaults()))
+
+
