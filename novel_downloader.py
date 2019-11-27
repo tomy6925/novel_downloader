@@ -11,7 +11,8 @@ import os
 import tkinter.messagebox
 import tkinter.simpledialog
 import tkinter.filedialog
-
+import configparser
+import datetime
 
 socket.setdefaulttimeout(30)
 
@@ -82,33 +83,70 @@ uapools = [
 ]
 
 
-def novel(url_novel):
-    plogSaveName = 'jianlai.txt'
-    url = url_novel
-    nov_headers = {
-        "User-Agent": random.choice(uapools)
-    }
-    res = requests.get(url, headers=nov_headers)
-    time.sleep(3)
-    content = res.content.decode('utf-8')
-    pat = '<div id="BookText">(.*?)<script'
-    pat_title = '<h1>(.*?)</h1>'
-    rst_title = re.compile(pat_title).findall(content)
-    print(rst_title)
-    with open(plogSaveName, 'a') as fileobject:
-        fileobject.writelines('\n'+rst_title[0]+'\n')
+# -----------------------------------------------------
+class MyConfig:
+    _configFile=''
+    def __init__(self, ini_path):
+        self._configFile = ini_path
+        if not os.path.isfile(self._configFile):
+            fo = open(self._configFile, mode='w', encoding='ANSI')
+            fo.close()
 
-    rst = re.findall(pat,content,re.S)
+    def Get_All_Section(self):
+        cf = configparser.ConfigParser()
+        try:
+            cf.read(self._configFile)
+            all_sections = cf.sections()
+            return all_sections
+        except:
+            return ''
 
-    for rets in rst:
-        pat_rets = "<p>(.*?)</p>"
-        nov_con = re.findall(pat_rets, rets)
-        for nov_cons in nov_con:
-            try:
-                with open(plogSaveName, 'a') as fileobject:
-                     fileobject.writelines(nov_cons + '\n')
-            except Exception as ex:
-                continue
+    def Add_detail(self, section, option, value):
+        cf = configparser.ConfigParser()
+        try:
+            cf.read(self._configFile)
+            cf.add_section(section)
+            cf.set(section, option, value)
+            cf.set(section, 'current_url', '')
+            fo = open(self._configFile, mode='w', encoding='ANSI')
+            # cf.write(open(self._configFile), 'w+')
+            cf.write(fo, 'w')
+            fo.close()
+            return True
+        except Exception as ex:
+            print('add_detail的error---repr(e):\t', repr(ex))
+            return False
+
+    def Get_option(self, section, option):
+        cf = configparser.ConfigParser()
+        try:
+            cf.read(self._configFile)
+            rep_option = cf.get(section, option)
+            return rep_option
+        except:
+            return '没有找到'
+
+    def Set_option(self, section, option, value):
+        cf = configparser.ConfigParser()
+        try:
+            cf.read(self._configFile)
+            cf.set(section, option, value)
+            cf.write(open(self._configFile, 'w'))
+            return 'ok'
+        except:
+            return 'error'
+
+    def Has_section(self, section):
+        cf = configparser.ConfigParser()
+        try:
+            cf.read(self._configFile)
+            if cf.has_section(section):
+                return True
+            else:
+                return False
+        except Exception as ex:
+            print('Has_section的error---repr(e):\t', repr(ex))
+
 # -----------------------------------------------------
 
 
@@ -120,9 +158,6 @@ def new_novel_detail(url, novel_name):
     res = requests.get(url, headers=nov_headers)
     res.encoding = 'gbk'
     soup = BeautifulSoup(res.text, 'html.parser')
-    pat_novel = '<div id="content">(.*?)</div>'
-    pat_title = 'var readtitle = "(.*?)";'
-
     rst_title = soup.h1.text
     rst_novel = soup.find_all('div', id="content")[0].text.replace('    ', '\n').replace(u'\xa0', u' ')
     lab6['text'] = rst_title
@@ -132,7 +167,7 @@ def new_novel_detail(url, novel_name):
             fileobject.writelines(rst_novel + '\n')
             fileobject.writelines('\n')
     except Exception as ex:
-        print('repr(e):\t', repr(ex))
+        print('new_novel_detail--repr(e):\t', repr(ex))
         with open(novel_name, 'a') as fileobject:
             fileobject.writelines(rst_title + '\n')
             fileobject.writelines(repr(ex) + '\n')
@@ -143,6 +178,7 @@ def biquge_info_v2(url):
     global btn
     btn['state'] = 'disabled'
     each_url = []
+    start_time = datetime.datetime.now()
     novel_total_num = 0
     novel_current_num = 0
     nov_headers = {
@@ -156,7 +192,6 @@ def biquge_info_v2(url):
         rst_novel_title = soup.h1.text  # 小说标题
         print(rst_novel_title)
         txt_novel = rst_novel_title + '.txt'
-        ini_novle = rst_novel_title + '.ini'
 
         txt_title['text'] = txt_novel
         novel_total_num = rst_novel_urls.__len__()  # 所有的章节数
@@ -165,16 +200,17 @@ def biquge_info_v2(url):
             temp_each_url = temp_each_url.split('/')[-1]
             each_url.append(temp_each_url)  # 所有的章节短链接
 
-        if os.path.exists(ini_novle):
+        if cfg.Has_section(rst_novel_title):
             text_text ='继续下载中...'
-            with open(ini_novle, 'r') as fileobject:  # 处理ini文件
-                url_history = fileobject.readline()
-                novel_current_num = each_url.index(url_history) + 1
-                lab6['text'] = '上次下载到：' + novel_current_num.__str__() + '章，一共有：' + novel_total_num.__str__()+'章。'
-                current_each_url = each_url[novel_current_num:]
-                print(current_each_url)
+                       # 处理ini文件
+            url_history = cfg.Get_option(rst_novel_title, 'current_url')
+            novel_current_num = each_url.index(url_history) + 1
+            lab6['text'] = '上次下载到：' + novel_current_num.__str__() + '章，一共有：' + novel_total_num.__str__()+'章。'
+            current_each_url = each_url[novel_current_num:]
+            print(current_each_url)
         else:
             text_text ='下载中...'
+            cfg.Add_detail(rst_novel_title, 'url', url)
             current_each_url = each_url
 
         for each_novle_url in current_each_url:  # 处理每一个章节
@@ -183,10 +219,9 @@ def biquge_info_v2(url):
             lab5['text'] = text_text+percent.__str__()+'%'
             # text.set(text_text+percent.__str__()+'%')
             percent_x = int(300*novel_current_num/novel_total_num)  # 进度条的百分比
-            process(percent_x)
+            process(percent_x, remain_time(start_time))
 
-            with open(ini_novle, 'w') as fileobject:  # 处理ini文件
-                fileobject.writelines(each_novle_url)
+            cfg.Set_option(rst_novel_title, 'current_url', each_novle_url.__str__())  # 处理ini文件
             url_str = url + each_novle_url
             new_novel_detail(url_str, txt_novel)
         lab5['text'] = '下载完成'
@@ -198,8 +233,15 @@ def biquge_info_v2(url):
         btn['state'] = 'normal'
 
 
+def remain_time(StartTime):
+    NowTime = datetime.datetime.now()
+    remain = (NowTime-StartTime).seconds
+    return remain
+
+
 def btn_point_v2():
     global btn
+    btn1['state'] = 'disabled'
     novel_url = txt_url.get()
     fill_line = canvas.create_rectangle(1.5, 1.5, 0, 21, width=0, fill='white')
     canvas.coords(fill_line, (1, 1, 300, 22))
@@ -207,15 +249,35 @@ def btn_point_v2():
     biquge_info_v2(novel_url)
 
 
-def process(x):
+def btn_point_allcontinue():
+    global btn1
+    btn1['state'] = 'disabled'
+    for section in cfg.Get_All_Section():
+        novel_url = cfg.Get_option(section, 'url')
+        fill_line = canvas.create_rectangle(1.5, 1.5, 0, 21, width=0, fill='white')
+        canvas.coords(fill_line, (1, 1, 300, 22))
+
+        time.sleep(1)
+        # root.update()
+        biquge_info_v2(novel_url)
+    btn1['state'] = 'normal'
+
+
+def process(x, r_time):
+    hour = r_time // 3600
+    min = (r_time % 3600) // 60
+    sec = (r_time % 3600) % 60
     fill_line = canvas.create_rectangle(1.5, 1.5, 0, 21, width=0, fill='green')
     canvas.coords(fill_line, (1, 1, x, 22))
+    
+    canvas.itemconfig(canvas.create_text(150, 11), text='{}:{}:{}'.format(hour, min, sec))
     root.update()
 
 
 if __name__ == '__main__':
     # 全局变量
     global btn
+    cfg = MyConfig('novel.ini')
 
     root = Tk()
     root.title('www.biqubao.com 小说下载器')
@@ -246,6 +308,8 @@ if __name__ == '__main__':
     txt_url.grid(row=2, column=1)
     btn = tkinter.Button(root, text='下载_提交', command=btn_point_v2, state='normal')
     btn.grid(row=3, column=1)
+    btn1 = tkinter.Button(root, text='全部追更', command=btn_point_allcontinue, state='normal')
+    btn1.grid(row=3, column=2)
 
 
     root.mainloop()

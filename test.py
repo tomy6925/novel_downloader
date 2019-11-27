@@ -30,7 +30,23 @@ class MyConfig:
             all_sections = cf.sections()
             return all_sections
         except:
-            return ''
+            return []
+
+    def Add_detail(self, section, option, value):
+        cf = configparser.ConfigParser()
+        try:
+            cf.read(self._configFile)
+            cf.add_section(section)
+            cf.set(section, option, value)
+            cf.set(section, 'current_url', '')
+            fo = open(self._configFile, mode='w', encoding='ANSI')
+            # cf.write(open(self._configFile), 'w+')
+            cf.write(fo, 'w')
+            fo.close()
+            return True
+        except Exception as ex:
+            print('add_detail的error---repr(e):\t', repr(ex))
+            return False
 
     def Get_option(self, section, option):
         cf = configparser.ConfigParser()
@@ -48,17 +64,38 @@ class MyConfig:
             cf.set(section, option, value)
             cf.write(open(self._configFile, 'w'))
             return 'ok'
-        except:
-            return 'error'
+        except Exception as ex:
+            print('Set_option的error---repr(e):\t', repr(ex))
 
+    def Has_section(self, section):
+        cf = configparser.ConfigParser()
+        cf.
+        try:
+            cf.read(self._configFile)
+            if cf.has_section(section):
+                return True
+            else:
+                return False
+        except Exception as ex:
+            print('Has_section的error---repr(e):\t', repr(ex))
+
+def test():
+    print(cfg.Get_All_Section())
 
 if __name__ == '__main__':
     cfg = MyConfig('novel.ini')
-    print(cfg.Get_All_Section())
-    print(cfg.Get_option('剑来4', 'url'))
-    flag = cfg.Set_option('剑来4', 'url', '1333311')
-    print(flag)
-    print(cfg.Get_option('剑来4', 'url'))
+    # test()
+    if cfg.Has_section('剑来'):
+        print('找到section')
+    else:
+        print('没找到section')
+    # print(cfg.Get_All_Section())
+    # print(cfg.Get_option('剑来4', 'url2'))
+    # print(cfg.Add_detail('剑来', 'url', 'url_detail'))
+
+    # flag = cfg.Set_option('剑来4', 'url', 'https://www.biqubao.com/book/18370/')
+    # print(flag)
+    # print(cfg.Get_option('剑来4', 'url'))
     # cfg = configparser.ConfigParser()
     # cfg.read(ini_file)
     # print('读取sections是 {}'.format(cfg.sections()))
